@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+§<!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
@@ -22,7 +22,9 @@
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
 
     html, body {
       margin: 0;
@@ -33,7 +35,9 @@
       color: var(--text);
     }
 
-    body { padding: 18px; }
+    body {
+      padding: 18px;
+    }
 
     .page {
       width: 100%;
@@ -41,7 +45,9 @@
       margin: 0 auto;
     }
 
-    .header { margin-bottom: 18px; }
+    .header {
+      margin-bottom: 18px;
+    }
 
     .header h1 {
       margin: 0 0 6px;
@@ -91,32 +97,28 @@
       box-shadow: var(--shadow);
       display: flex;
       flex-direction: column;
-      min-height: 210px;
+      min-height: 165px;
     }
 
-    .supplier-icon {
-      width: 46px;
-      height: 46px;
-      border-radius: 12px;
-      background: #eef5fb;
+    .supplier-brand {
       display: flex;
       align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      margin-bottom: 14px;
+      gap: 14px;
+      margin-bottom: 22px;
+      flex: 1;
+    }
+
+    .supplier-logo {
+      width: 78px;
+      height: 52px;
+      flex: 0 0 auto;
+      display: block;
     }
 
     .supplier-card h2 {
-      margin: 0 0 8px;
-      font-size: 18px;
-    }
-
-    .supplier-card p {
-      margin: 0 0 18px;
-      color: var(--muted);
-      font-size: 14px;
-      line-height: 1.45;
-      flex: 1;
+      margin: 0;
+      font-size: 20px;
+      font-weight: 700;
     }
 
     .button {
@@ -130,9 +132,16 @@
       font-weight: 700;
       cursor: pointer;
       width: 100%;
+      transition: background 0.15s ease, transform 0.05s ease;
     }
 
-    .button:hover { background: var(--primary-hover); }
+    .button:hover {
+      background: var(--primary-hover);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
 
     .button:disabled {
       opacity: 0.45;
@@ -149,7 +158,13 @@
       color: var(--muted);
     }
 
-    .debug strong { color: var(--text); }
+    .debug strong {
+      color: var(--text);
+    }
+
+    .debug code {
+      word-break: break-all;
+    }
 
     .footer {
       margin-top: 14px;
@@ -159,9 +174,17 @@
     }
 
     @media (max-width: 600px) {
-      body { padding: 12px; }
-      .header h1 { font-size: 20px; }
-      .supplier-card { min-height: auto; }
+      body {
+        padding: 12px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .supplier-card {
+        min-height: auto;
+      }
     }
   </style>
 </head>
@@ -182,19 +205,35 @@
       <div><strong>Actor ID :</strong> <span id="actorId">—</span></div>
     </section>
 
-    <div class="footer">Portail fournisseurs — POC Power Automate</div>
+    <div class="footer">Portail fournisseurs — V0</div>
   </main>
 
   <script>
+    /*
+      ============================================================
+      CONFIGURATION
+      ============================================================
+
+      CARL doit appeler cette page avec :
+
+      ?actorCode={user.actor.code}&actorId={user.actor.id}
+
+      Exemple :
+      https://VOTRE-COMPTE.github.io/VOTRE-REPO/
+        ?actorCode={user.actor.code}
+        &actorId={user.actor.id}
+
+      Pour la V0, le retour OCI utilise encore Beeceptor.
+      Le HOOK_URL sera remplacé ensuite par le Cloudflare Worker.
+    */
+
     const CONFIG = {
-      hookUrl: "https://default0d9fd909ada14c5a9f7ef736179722.df.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/e4364dc284ad417c8a29d8428f9f6d82/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Iotj2typ7k2NJUgeNG5Z2ESSBS0pDLoE2uBBnDx9YVs",
+      hookUrl: "https://gmao-test.free.beeceptor.com",
 
       suppliers: [
         {
           id: "ELEKTRO_MATERIAL",
           name: "Elektro-Material",
-          description: "Catalogue de matériel électrique.",
-          icon: "⚡",
           catalogUrl: "https://www.elektro-material.ch/shop/oci/inbound",
           parameters: {
             USERNAME: "805211",
@@ -206,6 +245,7 @@
     };
 
     const urlParams = new URLSearchParams(window.location.search);
+
     const actorCode = (urlParams.get("actorCode") || "").trim();
     const actorId = (urlParams.get("actorId") || "").trim();
 
@@ -233,8 +273,11 @@
         params.set(key, value);
       });
 
+      // Paramètres dynamiques provenant de CARL
       params.set("sapref", actorCode);
       params.set("~ActorId", actorId);
+
+      // Retour panier OCI
       params.set("HOOK_URL", CONFIG.hookUrl);
 
       return supplier.catalogUrl + "?" + params.toString();
@@ -249,11 +292,10 @@
         return;
       }
 
-      window.open(
-        buildSupplierUrl(supplier),
-        "_blank",
-        "noopener,noreferrer"
-      );
+      const targetUrl = buildSupplierUrl(supplier);
+
+      // Le webshop est volontairement ouvert hors de l'iframe CARL.
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
     }
 
     function renderSuppliers() {
@@ -261,26 +303,50 @@
         const card = document.createElement("article");
         card.className = "supplier-card";
 
-        const icon = document.createElement("div");
-        icon.className = "supplier-icon";
-        icon.textContent = supplier.icon || "🛒";
+        const brand = document.createElement("div");
+        brand.className = "supplier-brand";
+
+        const logo = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        logo.setAttribute("class", "supplier-logo");
+        logo.setAttribute("viewBox", "0 0 150 88");
+        logo.setAttribute("role", "img");
+        logo.setAttribute("aria-label", "EM");
+
+        const e = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        e.setAttribute("x", "3");
+        e.setAttribute("y", "63");
+        e.setAttribute("font-family", "Arial, Helvetica, sans-serif");
+        e.setAttribute("font-size", "70");
+        e.setAttribute("font-weight", "900");
+        e.setAttribute("fill", "#15803d");
+        e.textContent = "E";
+
+        const m = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        m.setAttribute("x", "56");
+        m.setAttribute("y", "63");
+        m.setAttribute("font-family", "Arial, Helvetica, sans-serif");
+        m.setAttribute("font-size", "70");
+        m.setAttribute("font-weight", "900");
+        m.setAttribute("fill", "#dc2626");
+        m.textContent = "M";
+
+        logo.appendChild(e);
+        logo.appendChild(m);
 
         const title = document.createElement("h2");
         title.textContent = supplier.name;
 
-        const description = document.createElement("p");
-        description.textContent = supplier.description;
+        brand.appendChild(logo);
+        brand.appendChild(title);
 
         const button = document.createElement("button");
         button.className = "button";
         button.type = "button";
-        button.textContent = "Ouvrir le catalogue";
+        button.textContent = "Ouvrir le webshop";
         button.disabled = !carlContextIsValid();
         button.addEventListener("click", () => openSupplier(supplier));
 
-        card.appendChild(icon);
-        card.appendChild(title);
-        card.appendChild(description);
+        card.appendChild(brand);
         card.appendChild(button);
 
         supplierGridEl.appendChild(card);
@@ -290,12 +356,12 @@
     if (carlContextIsValid()) {
       setStatus(
         "ok",
-        "Contexte CARL reçu correctement. Le retour panier OCI est configuré directement vers Power Automate."
+        "Contexte CARL reçu correctement. Vous pouvez ouvrir un catalogue."
       );
     } else {
       setStatus(
         "warning",
-        "Mode test : actorCode et actorId sont absents."
+        "Mode test : les paramètres actorCode et actorId sont absents. Configurez l'URL du composant Site dans CARL avec ?actorCode={user.actor.code}&actorId={user.actor.id}."
       );
     }
 
