@@ -22,9 +22,7 @@
       --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html, body {
       margin: 0;
@@ -35,9 +33,7 @@
       color: var(--text);
     }
 
-    body {
-      padding: 18px;
-    }
+    body { padding: 18px; }
 
     .page {
       width: 100%;
@@ -45,9 +41,7 @@
       margin: 0 auto;
     }
 
-    .header {
-      margin-bottom: 18px;
-    }
+    .header { margin-bottom: 18px; }
 
     .header h1 {
       margin: 0 0 6px;
@@ -136,16 +130,9 @@
       font-weight: 700;
       cursor: pointer;
       width: 100%;
-      transition: background 0.15s ease, transform 0.05s ease;
     }
 
-    .button:hover {
-      background: var(--primary-hover);
-    }
-
-    .button:active {
-      transform: translateY(1px);
-    }
+    .button:hover { background: var(--primary-hover); }
 
     .button:disabled {
       opacity: 0.45;
@@ -162,13 +149,7 @@
       color: var(--muted);
     }
 
-    .debug strong {
-      color: var(--text);
-    }
-
-    .debug code {
-      word-break: break-all;
-    }
+    .debug strong { color: var(--text); }
 
     .footer {
       margin-top: 14px;
@@ -178,17 +159,9 @@
     }
 
     @media (max-width: 600px) {
-      body {
-        padding: 12px;
-      }
-
-      .header h1 {
-        font-size: 20px;
-      }
-
-      .supplier-card {
-        min-height: auto;
-      }
+      body { padding: 12px; }
+      .header h1 { font-size: 20px; }
+      .supplier-card { min-height: auto; }
     }
   </style>
 </head>
@@ -209,30 +182,12 @@
       <div><strong>Actor ID :</strong> <span id="actorId">—</span></div>
     </section>
 
-    <div class="footer">Portail fournisseurs — V0</div>
+    <div class="footer">Portail fournisseurs — POC Power Automate</div>
   </main>
 
   <script>
-    /*
-      ============================================================
-      CONFIGURATION
-      ============================================================
-
-      CARL doit appeler cette page avec :
-
-      ?actorCode={user.actor.code}&actorId={user.actor.id}
-
-      Exemple :
-      https://VOTRE-COMPTE.github.io/VOTRE-REPO/
-        ?actorCode={user.actor.code}
-        &actorId={user.actor.id}
-
-      Pour la V0, le retour OCI utilise encore Beeceptor.
-      Le HOOK_URL sera remplacé ensuite par le Cloudflare Worker.
-    */
-
     const CONFIG = {
-      hookUrl: "https://gmao-test.free.beeceptor.com",
+      hookUrl: "https://default0d9fd909ada14c5a9f7ef736179722.df.environment.api.powerplatform.com:443/powerautomate/automations/direct/cu/07/workflows/e4364dc284ad417c8a29d8428f9f6d82/triggers/manual/paths/invoke?api-version=1&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=Iotj2typ7k2NJUgeNG5Z2ESSBS0pDLoE2uBBnDx9YVs",
 
       suppliers: [
         {
@@ -251,7 +206,6 @@
     };
 
     const urlParams = new URLSearchParams(window.location.search);
-
     const actorCode = (urlParams.get("actorCode") || "").trim();
     const actorId = (urlParams.get("actorId") || "").trim();
 
@@ -279,11 +233,8 @@
         params.set(key, value);
       });
 
-      // Paramètres dynamiques provenant de CARL
       params.set("sapref", actorCode);
       params.set("~ActorId", actorId);
-
-      // Retour panier OCI
       params.set("HOOK_URL", CONFIG.hookUrl);
 
       return supplier.catalogUrl + "?" + params.toString();
@@ -298,10 +249,11 @@
         return;
       }
 
-      const targetUrl = buildSupplierUrl(supplier);
-
-      // Le webshop est volontairement ouvert hors de l'iframe CARL.
-      window.open(targetUrl, "_blank", "noopener,noreferrer");
+      window.open(
+        buildSupplierUrl(supplier),
+        "_blank",
+        "noopener,noreferrer"
+      );
     }
 
     function renderSuppliers() {
@@ -338,12 +290,12 @@
     if (carlContextIsValid()) {
       setStatus(
         "ok",
-        "Contexte CARL reçu correctement. Vous pouvez ouvrir un catalogue."
+        "Contexte CARL reçu correctement. Le retour panier OCI est configuré directement vers Power Automate."
       );
     } else {
       setStatus(
         "warning",
-        "Mode test : les paramètres actorCode et actorId sont absents. Configurez l'URL du composant Site dans CARL avec ?actorCode={user.actor.code}&actorId={user.actor.id}."
+        "Mode test : actorCode et actorId sont absents."
       );
     }
 
