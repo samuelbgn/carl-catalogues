@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
+  <title>Catalogues fournisseurs</title>
+
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --card: #ffffff;
+      --text: #1f2937;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --primary: #0f5ea8;
+      --primary-hover: #0b4d8a;
+      --success-bg: #ecfdf3;
+      --success-text: #166534;
+      --warning-bg: #fff7ed;
+      --warning-text: #9a3412;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      min-height: 100%;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    body {
+      padding: 18px;
+    }
+
+    .page {
+      width: 100%;
+      max-width: 980px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 18px;
+    }
+
+    .header h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .header p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .status {
+      display: none;
+      margin: 0 0 18px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .status.ok {
+      display: block;
+      background: var(--success-bg);
+      color: var(--success-text);
+    }
+
+    .status.warning {
+      display: block;
+      background: var(--warning-bg);
+      color: var(--warning-text);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+
+    .supplier-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      min-height: 210px;
+    }
+
+    .supplier-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: #eef5fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    .supplier-card h2 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .supplier-card p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+      flex: 1;
+    }
+
+    .button {
+      appearance: none;
+      border: 0;
+      border-radius: 9px;
+      padding: 11px 14px;
+      background: var(--primary);
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.15s ease, transform 0.05s ease;
+    }
+
+    .button:hover {
+      background: var(--primary-hover);
+    }
+
+    .button:active {
+      transform: translateY(1px);
+    }
+
+    .button:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .debug {
+      margin-top: 18px;
+      background: #ffffff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .debug strong {
+      color: var(--text);
+    }
+
+    .debug code {
+      word-break: break-all;
+    }
+
+    .footer {
+      margin-top: 14px;
+      color: #9ca3af;
+      font-size: 11px;
+      text-align: right;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+
+      .supplier-card {
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="page">
+    <section class="header">
+      <h1>Catalogues fournisseurs</h1>
+      <p>Sélectionnez un fournisseur pour ouvrir son webshop.</p>
+    </section>
+
+    <div id="status" class="status"></div>
+
+    <section id="supplierGrid" class="grid"></section>
+
+    <section class="debug">
+      <div><strong>Utilisateur CARL :</strong> <span id="actorCode">—</span></div>
+      <div><strong>Actor ID :</strong> <span id="actorId">—</span></div>
+    </section>
+
+    <div class="footer">Portail fournisseurs — V0</div>
+  </main>
+
+  <script>
+    /*
+      ============================================================
+      CONFIGURATION
+      ============================================================
+
+      CARL doit appeler cette page avec :
+
+      ?actorCode={user.actor.code}&actorId={user.actor.id}
+
+      Exemple :
+      https://VOTRE-COMPTE.github.io/VOTRE-REPO/
+        ?actorCode={user.actor.code}
+        &actorId={user.actor.id}
+
+      Pour la V0, le retour OCI utilise encore Beeceptor.
+      Le HOOK_URL sera remplacé ensuite par le Cloudflare Worker.
+    */
+
+    const CONFIG = {
+      hookUrl: "https://gmao-test.free.beeceptor.com",
+
+      suppliers: [
+        {
+          id: "ELEKTRO_MATERIAL",
+          name: "Elektro-Material",
+          description: "Catalogue de matériel électrique.",
+          icon: "⚡",
+          catalogUrl: "https://www.elektro-material.ch/shop/oci/inbound",
+          parameters: {
+            USERNAME: "805211",
+            lang: "fr",
+            "~Code_fournisseur": "193419e88ff-17fc16"
+          }
+        }
+      ]
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+
+    const actorCode = (urlParams.get("actorCode") || "").trim();
+    const actorId = (urlParams.get("actorId") || "").trim();
+
+    const statusEl = document.getElementById("status");
+    const actorCodeEl = document.getElementById("actorCode");
+    const actorIdEl = document.getElementById("actorId");
+    const supplierGridEl = document.getElementById("supplierGrid");
+
+    actorCodeEl.textContent = actorCode || "non transmis";
+    actorIdEl.textContent = actorId || "non transmis";
+
+    function setStatus(type, message) {
+      statusEl.className = "status " + type;
+      statusEl.textContent = message;
+    }
+
+    function carlContextIsValid() {
+      return actorCode !== "" && actorId !== "";
+    }
+
+    function buildSupplierUrl(supplier) {
+      const params = new URLSearchParams();
+
+      Object.entries(supplier.parameters).forEach(([key, value]) => {
+        params.set(key, value);
+      });
+
+      // Paramètres dynamiques provenant de CARL
+      params.set("sapref", actorCode);
+      params.set("~ActorId", actorId);
+
+      // Retour panier OCI
+      params.set("HOOK_URL", CONFIG.hookUrl);
+
+      return supplier.catalogUrl + "?" + params.toString();
+    }
+
+    function openSupplier(supplier) {
+      if (!carlContextIsValid()) {
+        setStatus(
+          "warning",
+          "Impossible d'ouvrir le catalogue : actorCode ou actorId n'a pas été transmis par CARL."
+        );
+        return;
+      }
+
+      const targetUrl = buildSupplierUrl(supplier);
+
+      // Le webshop est volontairement ouvert hors de l'iframe CARL.
+      window.open(targetUrl, "_blank", "noopener,noreferrer");
+    }
+
+    function renderSuppliers() {
+      CONFIG.suppliers.forEach((supplier) => {
+        const card = document.createElement("article");
+        card.className = "supplier-card";
+
+        const icon = document.createElement("div");
+        icon.className = "supplier-icon";
+        icon.textContent = supplier.icon || "🛒";
+
+        const title = document.createElement("h2");
+        title.textContent = supplier.name;
+
+        const description = document.createElement("p");
+        description.textContent = supplier.description;
+
+        const button = document.createElement("button");
+        button.className = "button";
+        button.type = "button";
+        button.textContent = "Ouvrir le catalogue";
+        button.disabled = !carlContextIsValid();
+        button.addEventListener("click", () => openSupplier(supplier));
+
+        card.appendChild(icon);
+        card.appendChild(title);
+        card.appendChild(description);
+        card.appendChild(button);
+
+        supplierGridEl.appendChild(card);
+      });
+    }
+
+    if (carlContextIsValid()) {
+      setStatus(
+        "ok",
+        "Contexte CARL reçu correctement. Vous pouvez ouvrir un catalogue."
+      );
+    } else {
+      setStatus(
+        "warning",
+        "Mode test : les paramètres actorCode et actorId sont absents. Configurez l'URL du composant Site dans CARL avec ?actorCode={user.actor.code}&actorId={user.actor.id}."
+      );
+    }
+
+    renderSuppliers();
+  </script>
+</body>
+</html>
